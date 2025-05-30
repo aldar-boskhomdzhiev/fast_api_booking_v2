@@ -1,8 +1,12 @@
-from fastapi import Query, APIRouter
+from fastapi import Query, APIRouter, Body
 
+from sqlalchemy import insert, select, update
 
-from src.schemas.hotels import Hotel
+from src.models.hotels import HotelsOrm
+from src.schemas.hotels import Hotel, HotelPATCH
 from src.api.dependencies import PaginationDep
+
+from src.database import async_session_maker
 
 
 hotels = [
@@ -19,16 +23,14 @@ hotels = [
 ]
 
 
-
 router = APIRouter(prefix="/hotels", tags=["Отели"])
 
 
-@router.get("",summary='Получение данных')
+@router.get("", summary="Получение данных")
 def get_hotels(
     pagination: PaginationDep,
     id: int | None = Query(None, description="ID отеля"),
     title: str | None = Query(None, description="Название отеля"),
-
 ):
     hotels_ = []
     for hotel in hotels:
@@ -39,35 +41,50 @@ def get_hotels(
         hotels_.append(hotel)
 
     if pagination.page and pagination.per_page:
-        return hotels_[pagination.per_page*(pagination.page-1):][:pagination.per_page]
+        return hotels_[pagination.per_page * (pagination.page - 1) :][
+            : pagination.per_page
+        ]
     return hotels_
 
 
-
-@router.delete("/{hotel_id}",summary='Удаление данных')
+@router.delete("/{hotel_id}", summary="Удаление данных")
 def delete_hotel(hotel_id: int):
     global hotels
     hotels = [hotel for hotel in hotels if hotel["id"] != hotel_id]
     return {"status": "OK"}
 
 
-@router.post("",summary='Добавление данных')
-def create_hotel(
-        hotel_data: Hotel
-):
-    global hotels
-    hotels.append(
-        {
-            "id": hotels[-1]["id"] + 1,
-            "title": hotel_data.title,
-            "name": hotel_data.name,
+@router.post("", summary="Добавление данных")
+async def create_hotel(
+    hotel_data: Hotel = Body(
+        openapi_examples={
+            "Пример отеля": {
+                "summary": "Пример 5-звёздочного отеля",
+                "value": {
+                    "title": "Отель у моря 5 звезд",
+                    "location": "sochi_y_moray"
+                }
+            },
+            "Пример отеля 2": {
+                "summary": "Пример 5-звёздочного отеля ДУБАЙ",
+                "value": {
+                    "title": "Отель в Дубае 5 звезд",
+                    "location": "ДУБАЙ-МОЛ"
+                }
+            },
+
         }
-    )
+)):
+
+    async with async_session_maker() as session:
+        add_hotel_stmt = insert(HotelsOrm).values(**hotel_data.model_dump())
+        await session.execute(add_hotel_stmt)
+        await session.commit()
 
     return {"status": "OK"}
 
 
-@router.put("/{hotel_id}", summary='Обновление данных')
+@router.put("/{hotel_id}", summary="Обновление данных")
 def update_hotel(
     hotel_id: int,
     hotel_data: Hotel,
@@ -81,10 +98,10 @@ def update_hotel(
     return {"status": "not_found"}, 404
 
 
-@router.patch("/{hotel_id}",summary='Частичное обновление данных')
+@router.patch("/{hotel_id}", summary="Частичное обновление данных")
 def partial_update_hotel(
     hotel_id: int,
-    hotel_data: Hotel,
+    hotel_data: HotelPATCH,
 ):
 
     global hotels
