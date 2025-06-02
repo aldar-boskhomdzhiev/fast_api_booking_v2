@@ -7,3 +7,11 @@ class Hotel(BaseModel):
 class HotelPATCH(BaseModel):
     title: str | None = Field(None)
     location: str | None = Field(None)
+
+class HotelResponse(BaseModel):
+    id: int
+    title: str
+    location: str
+
+    class Config:
+        from_attributes = True
