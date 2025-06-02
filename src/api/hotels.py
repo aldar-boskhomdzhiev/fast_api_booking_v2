@@ -1,7 +1,7 @@
 from fastapi import Query, APIRouter, Body
 
 from src.repositories.hotels import HotelRepository
-from src.schemas.hotels import Hotel, HotelPATCH, HotelResponse
+from src.schemas.hotels import Hotel, HotelPATCH
 from src.api.dependencies import PaginationDep
 
 from src.database import async_session_maker
@@ -55,23 +55,21 @@ async def create_hotel(
 )):
 
     async with async_session_maker() as session:
-        hotel = await HotelRepository(session).add(hotel_data.model_dump())
-
-    return {"status": "OK", "data": HotelResponse.model_validate(hotel)}
+        hotel = await HotelRepository(session).add(hotel_data)
+        await session.commit()
+    return {"status": "OK", "data": hotel}
 
 
 @router.put("/{hotel_id}", summary="Обновление данных")
-def update_hotel(
+async def update_hotel(
     hotel_id: int,
     hotel_data: Hotel,
 ):
-    global hotels
-    for hotel in hotels:
-        if hotel["id"] == hotel_id:
-            hotel.update(id=hotel_id, title=hotel_data.title, name=hotel_data.name)
-            return {"status": "updated", "hotel": hotel}
+    async with async_session_maker() as session:
+        await HotelRepository(session).edit(hotel_data, id=hotel_id)
+        await session.commit()
+        return {"status": "OK"}
 
-    return {"status": "not_found"}, 404
 
 
 @router.patch("/{hotel_id}", summary="Частичное обновление данных")
