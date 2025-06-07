@@ -8,6 +8,11 @@ from src.database import async_session_maker
 
 router = APIRouter(prefix="/hotels", tags=["Отели"])
 
+@router.get("/{hotel_id}", summary="Получение одного отеля по id")
+async def get_hotel(hotel_id: int):
+    async with async_session_maker() as session:
+        return await HotelRepository(session).get_one(id=hotel_id)
+
 
 @router.get("", summary="Получение данных")
 async def get_hotels(
@@ -59,7 +64,7 @@ async def create_hotel(
     async with async_session_maker() as session:
         hotel = await HotelRepository(session).add(hotel_data)
         await session.commit()
-    return {"status": "OK", "data": hotel}
+        return {"status": "OK", "data": hotel}
 
 
 @router.put("/{hotel_id}", summary="Обновление данных")
@@ -75,15 +80,12 @@ async def update_hotel(
 
 
 @router.patch("/{hotel_id}", summary="Частичное обновление данных")
-def partial_update_hotel(
+async def partial_update_hotel(
     hotel_id: int,
     hotel_data: HotelPATCH,
 ):
+    async with async_session_maker() as session:
+        await HotelRepository(session).edit(hotel_data, id=hotel_id, exclude_unset=True)
+        await session.commit()
+    return {"status": "OK"}
 
-    global hotels
-    hotel = [hotel for hotel in hotels if hotel["id"] == hotel_id][0]
-    if hotel_data.title:
-        hotel["title"] = hotel_data.title
-    if hotel_data.name:
-        hotel["name"] = hotel_data.name
-    return {"status": "updated", "hotel": hotel}
