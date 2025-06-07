@@ -1,4 +1,5 @@
-from sqlalchemy import select, insert, update
+from fastapi import HTTPException
+from sqlalchemy import select, insert, update, delete
 from pydantic import BaseModel
 
 
@@ -35,8 +36,21 @@ class BaseRepository:
         return None
 
 
-    async def delete(self, **filter_by) -> None:
-        pass
+    async def delete(self, **filter_by: object) -> None:
+
+        stmt = select(self.model).filter_by(**filter_by)
+        result = await self.session.execute(stmt)
+        records = result.scalars().all()
+
+        if not records:
+            raise HTTPException(status_code=404, detail="Object not found")
+        elif len(records):
+            raise HTTPException(status_code=404, detail="More than one object found")
+
+        delete_stmt = delete(self.model).where(
+            *[getattr(self.model,k) == v for k, v in filter_by.items()])
+        await self.session.execute(delete_stmt)
+
 
 
 
