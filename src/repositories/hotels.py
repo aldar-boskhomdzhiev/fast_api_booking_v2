@@ -1,12 +1,12 @@
-from sqlalchemy import select, func
-
-from src.database import engine
+from sqlalchemy import select
 from src.repositories.base import BaseRepository
 from src.models.hotels import HotelsOrm
+from src.schemas.hotels import Hotel
 
 
 class HotelRepository(BaseRepository):
     model = HotelsOrm
+    schema = Hotel
 
     async def get_all(
             self,
@@ -31,5 +31,5 @@ class HotelRepository(BaseRepository):
         result = await self.session.execute(query)
         print("location:", location)
         print(query.compile(compile_kwargs={"literal_binds": True}))
-        return result.scalars().all()
+        return [self.schema.model_validate(model, from_attributes= True )for model in result.scalars().all()]
 
