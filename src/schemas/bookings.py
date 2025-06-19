@@ -1,41 +1,26 @@
-from datetime import datetime
+from datetime import date
 
 from pydantic import BaseModel
 
 
-class BookingsAddRequest(BaseModel):
-    date_from: datetime
-    date_to: datetime
-    price: int
+class BookingAddRequest(BaseModel):
+    room_id: int
+    date_from: date
+    date_to: date
 
 
-class BookingsAdd(BaseModel):
-    id: int
+class BookingAdd(BaseModel):
     room_id: int
     user_id: int
-    date_from: datetime
-    date_to: datetime
+    date_from: date
+    date_to: date
     price: int
 
 
-class Bookings(BookingsAdd):
+class Booking(BookingAdd):
     id: int
-    room_id: int
-    user_id: int
-
-class BookingsPatchRequest(BaseModel):
-    date_from: datetime
-    date_to: datetime
-    price: int
 
 
-class BookingsPatch(BaseModel):
-    id: int
-    room_id: int
-    user_id: int
-    date_from: datetime
-    date_to: datetime
-    price: int
 
 
 
