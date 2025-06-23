@@ -9,9 +9,8 @@ from src.database import async_session_maker
 router = APIRouter(prefix="/hotels", tags=["Отели"])
 
 @router.get("/{hotel_id}", summary="Получение одного отеля по id")
-async def get_hotel(hotel_id: int):
-    async with async_session_maker() as session:
-        return await HotelsRepository(session).get_one(id=hotel_id)
+async def get_hotel(hotel_id: int, db: DBDep):
+        return await db.hotels.get_one_or_none(id=hotel_id)
 
 
 @router.get("", summary="Получение данных")
@@ -31,16 +30,16 @@ async def get_hotels(
 
 
 @router.delete("/{hotel_id}", summary="Удаление данных")
-async def delete_hotel(hotel_id: int):
+async def delete_hotel(hotel_id: int, db: DBDep):
 
-    async with async_session_maker() as session:
-        await HotelsRepository(session).delete(id=hotel_id)
-        await session.commit()
+    await db.hotels.delete(id=hotel_id)
+    await db.session.commit()
     return {"status":"OK","hotel_id": hotel_id}
 
 
 @router.post("", summary="Добавление данных")
 async def create_hotel(
+    db:DBDep,
     hotel_data: HotelAdd = Body(
         openapi_examples={
             "Пример отеля": {
@@ -58,24 +57,22 @@ async def create_hotel(
                 }
             },
 
-        }
-)):
-
-    async with async_session_maker() as session:
-        hotel = await HotelsRepository(session).add(hotel_data)
-        await session.commit()
-        return {"status": "OK", "data": hotel}
+        }),
+):
+    await db.hotels.add(hotel_data)
+    await db.session.commit()
+    return {"status": "OK", "data": hotel_data}
 
 
 @router.put("/{hotel_id}", summary="Обновление данных")
 async def update_hotel(
     hotel_id: int,
-    hotel_data: Hotel,
+    hotel_data: HotelAdd,
+    db: DBDep,
 ):
-    async with async_session_maker() as session:
-        await HotelsRepository(session).edit(hotel_data, id=hotel_id)
-        await session.commit()
-        return {"status": "OK"}
+    await db.hotels.edit(hotel_data, id=hotel_id)
+    await db.session.commit()
+    return {"status": "OK"}
 
 
 
@@ -83,9 +80,10 @@ async def update_hotel(
 async def partial_update_hotel(
     hotel_id: int,
     hotel_data: HotelPATCH,
+    db: DBDep,
 ):
-    async with async_session_maker() as session:
-        await HotelsRepository(session).patch(hotel_data, id=hotel_id, exclude_unset=True)
-        await session.commit()
+
+    await db.hotels.patch(hotel_data, id=hotel_id, exclude_unset=True)
+    await db.session.commit()
     return {"status": "OK"}
 
