@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, insert, update, delete
 from pydantic import BaseModel
 
+from src.database import engine
 
 
 class BaseRepository:
@@ -43,6 +44,7 @@ class BaseRepository:
         add_data_stmt = (
             insert(self.model).values(**data.model_dump()).returning(self.model)
         )
+        print(add_data_stmt.compile(bind=engine, compile_kwargs={"literal_binds": True}))
         result = await self.session.execute(add_data_stmt)
         return result.scalars().one()
 
