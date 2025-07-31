@@ -49,6 +49,12 @@ class BaseRepository:
         return result.scalars().one()
 
 
+    async def add_bulk(self, data: list[BaseModel]):
+        print([item.model_dump() for item in data])
+        add_data_stmt =insert(self.model).values([item.model_dump() for item in data])
+        print(add_data_stmt.compile(bind=engine, compile_kwargs={"literal_binds": True}))
+        await self.session.execute(add_data_stmt)
+
 
     async def edit(self, data: BaseModel, **filter_by) -> None:
         edit_stmt = (
