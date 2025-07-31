@@ -6,6 +6,7 @@ from src.repositories.utils import rooms_ids_for_booking
 from src.schemas.rooms import Room, RoomWithRels
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload, joinedload
+from src.database import engine
 
 
 class RoomsRepository(BaseRepository):
@@ -30,11 +31,27 @@ class RoomsRepository(BaseRepository):
             .filter(RoomsOrm.id.in_(rooms_ids_to_get))
 
         )
+
         result = await self.session.execute(query)
-        return [RoomWithRels.model_validate(model) for model in result.unique().scalars().all()]
+        #print(query.compile(bind=engine, compile_kwargs={"literal_binds": True}))
+        return [RoomWithRels.model_validate(model, from_attributes=True) for model in result.unique().scalars().all()]
 
 
-
+    async def get_one_or_none_and_facilities(
+            self,
+            id: int,
+            hotel_id: int
+    ):
+        query = (
+            select(self.model)
+            .options(selectinload(self.model.facilities))
+            .filter_by(id=id,hotel_id=hotel_id))
+        result = await self.session.execute(query)
+        model = result.scalars().one_or_none()
+        if model is None:
+            return None
+        print(query.compile(bind=engine, compile_kwargs={"literal_binds": True}))
+        return RoomWithRels.model_validate(model, from_attributes=True)
 
 
 
